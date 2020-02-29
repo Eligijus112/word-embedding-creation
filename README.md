@@ -1,6 +1,6 @@
 # Creation of word embeddings using neural networks
 
-This project reads the text that is in **text.txt** file and creates a file with the word embeddings. 
+The code in this project is used to read text and create a file with the word embeddings. 
 
 # Activating the virtual environment
 
