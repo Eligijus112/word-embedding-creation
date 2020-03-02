@@ -5,6 +5,9 @@ import re
 import os
 from tqdm import tqdm
 
+# Drawing the embeddings
+import matplotlib.pyplot as plt
+
 # Deep learning: 
 from keras.models import Input, Model
 from keras.layers import Dense
@@ -12,9 +15,8 @@ from keras.layers import Dense
 from scipy import sparse
 
 # Reading the text from the input folder
-texts = pd.read_csv('input/spam_text.csv')
-texts = texts[texts['Category']=='spam']
-texts = [x for x in texts['Message']]
+texts = pd.read_csv('input/sample.csv')
+texts = [x for x in texts['text']]
 
 # Defining the window for context
 window = 3
@@ -45,16 +47,29 @@ for text in texts:
 
     # Converting all our text to a list 
     text = text.split(' ')
-    all_text += text
+
+    # Droping empty strings
+    text = [x for x in text if x!='']
+
+    # Droping stop words
+    text = [x for x in text if x not in ['a', 'is', 'the', 'in']]
+
+    # Appending to the all text list
+    all_text += text 
 
     # Creating a context dictionary
     for i, word in enumerate(text):
-        if i + 1 + window <= len(text): 
-            context = text[(i + 1):(i + 1 + window)]
-            word_lists.append([word] + context)
+        for w in range(window):
+            # Getting the context that is ahead by *window* words
+            if i + 1 + w < len(text): 
+                word_lists.append([word] + [text[(i + 1 + w)]])
+            # Getting the context that is behind by *window* words    
+            if i - w - 1 >= 0:
+                word_lists.append([word] + [text[(i - w - 1)]])
 
 # Getting all the unique words from our text 
-words = set(all_text)
+words = list(set(all_text))
+words.sort()
 
 # Defining the number of features (unique words)
 n_words = len(words)
@@ -71,31 +86,34 @@ X = []
 Y = []
 
 for i, word_list in tqdm(enumerate(word_lists)):
-    for w in range(window):
-        # Creating the placeholders   
-        X_row = np.zeros(n_words)
-        Y_row = np.zeros(n_words)
+    # Getting the indices
+    main_word_index = unique_word_dict.get(word_list[0])
+    context_word_index = unique_word_dict.get(word_list[1])
 
-        # One hot encoding the main word
-        X_row[unique_word_dict.get(word_list[0])] = 1
+    # Creating the placeholders   
+    X_row = np.zeros(n_words)
+    Y_row = np.zeros(n_words)
 
-        # One hot encoding the Y matrix words 
-        Y_row[unique_word_dict.get(word_list[w + 1])] = 1
+    # One hot encoding the main word
+    X_row[main_word_index] = 1
 
-        # Appending to the main matrices
-        X.append(X_row)
-        Y.append(Y_row)
+    # One hot encoding the Y matrix words 
+    Y_row[context_word_index] = 1
+
+    # Appending to the main matrices
+    X.append(X_row)
+    Y.append(Y_row)
 
 # Converting the matrices into a sparse format because the vast majority of the data are 0s
 X = sparse.csr_matrix(X)
 Y = sparse.csr_matrix(Y)
 
 # Defining the size of the embedding
-embed_size = 100
+embed_size = 2
 
 # Defining the neural network
 inp = Input(shape=(n_words,))
-x = Dense(units=embed_size)(inp)
+x = Dense(units=embed_size, activation='linear')(inp)
 x = Dense(units=n_words, activation='softmax')(x)
 model = Model(inputs=inp, outputs=x)
 model.compile(loss = 'categorical_crossentropy', optimizer = 'adam')
@@ -122,18 +140,12 @@ for word in words:
         word: weights[unique_word_dict.get(word)]
         })
 
-# Saving the embedding vector to a txt file
-try:
-    os.mkdir(f'{os.getcwd()}\\output')        
-except Exception as e:
-    print(f'Cannot create output folder: {e}')
-
-with open(f'{os.getcwd()}\\output\\embedding.txt', 'w') as f:
-    for key, value in embedding_dict.items():
-        try:
-            f.write(f'{key}: {value}\n')   
-        except Exception as e:
-            print(f'Cannot write word {key} to dict: {e}')     
+# Ploting the embeddings
+plt.figure(figsize=(10, 10))
+for word in words:
+    coord = embedding_dict.get(word)
+    plt.scatter(coord[0], coord[1])
+    plt.annotate(word, (coord[0], coord[1]))
 
 # Functions to find the most similar word 
 def euclidean(vec1:np.array, vec2:np.array) -> float:
@@ -157,3 +169,17 @@ def find_similar(word:str, embedding_dict:dict, top_n=10)->list:
                 })
 
         return sorted(dist_dict.items(), key=lambda x: x[1])[0:top_n]          
+
+# Saving the embedding vector to a txt file
+try:
+    os.mkdir(f'{os.getcwd()}\\output')        
+except Exception as e:
+    print(f'Cannot create output folder: {e}')
+
+with open(f'{os.getcwd()}\\output\\embedding.txt', 'w') as f:
+    for key, value in embedding_dict.items():
+        try:
+            f.write(f'{key}: {value}\n')   
+        except Exception as e:
+            print(f'Cannot write word {key} to dict: {e}')             
+
