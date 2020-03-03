@@ -19,7 +19,7 @@ texts = pd.read_csv('input/sample.csv')
 texts = [x for x in texts['text']]
 
 # Defining the window for context
-window = 3
+window = 2
 
 # Creating a placeholder for the scanning of the word list
 word_lists = []
@@ -52,7 +52,7 @@ for text in texts:
     text = [x for x in text if x!='']
 
     # Droping stop words
-    text = [x for x in text if x not in ['a', 'is', 'the', 'in']]
+    text = [x for x in text if x not in ['and', 'a', 'is', 'the', 'in', 'be', 'will']]
 
     # Appending to the all text list
     all_text += text 
@@ -123,7 +123,7 @@ model.fit(
     x=X, 
     y=Y, 
     batch_size=256,
-    epochs=100
+    epochs=1000
     )
 
 # Obtaining the weights from the neural network. 
