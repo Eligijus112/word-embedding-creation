@@ -85,9 +85,9 @@ Y = sparse.csr_matrix(Y)
 embed_size = 2
 
 # Defining the neural network
-inp = Input(shape=(n_words,))
+inp = Input(shape=(X.shape[1],))
 x = Dense(units=embed_size, activation='linear')(inp)
-x = Dense(units=n_words, activation='softmax')(x)
+x = Dense(units=Y.shape[1], activation='softmax')(x)
 model = Model(inputs=inp, outputs=x)
 model.compile(loss = 'categorical_crossentropy', optimizer = 'adam')
 
@@ -115,7 +115,7 @@ for word in words:
 
 # Ploting the embeddings
 plt.figure(figsize=(10, 10))
-for word in words:
+for word in list(unique_word_dict.keys()):
     coord = embedding_dict.get(word)
     plt.scatter(coord[0], coord[1])
     plt.annotate(word, (coord[0], coord[1]))       
