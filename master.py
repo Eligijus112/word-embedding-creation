@@ -34,7 +34,9 @@ for text in texts:
     text = text_preprocessing(text)
 
     # Appending to the all text list
-    all_text += text 
+    all_text.append(text)
+
+    text = text.split(" ")
 
     # Creating a context dictionary
     for i, word in enumerate(text):
